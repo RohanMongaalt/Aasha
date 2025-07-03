@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { User, Calendar, MessageSquare } from "lucide-react";
+import { BarChart3, BookOpen, Brain, Calendar, MessageSquare } from "lucide-react";
 
-export type TabType = "assigned" | "progress" | "sessions" | "messages" | "tasks";
+export type TabType = "progress" | "journal" | "meditation" | "calendar" | "messages";
 
 const navItems = [
-  { id: "assigned" as TabType, label: "Assigned", icon: User },
-  { id: "progress" as TabType, label: "Progress", icon: Calendar },
-  { id: "sessions" as TabType, label: "Sessions", icon: Calendar },
-  { id: "messages" as TabType, label: "Messages", icon: MessageSquare },
-  { id: "tasks" as TabType, label: "Tasks", icon: Calendar }
+  { id: "progress" as TabType, label: "Progress", icon: BarChart3 },
+  { id: "journal" as TabType, label: "Journal", icon: BookOpen },
+  { id: "meditation" as TabType, label: "Meditation", icon: Brain },
+  { id: "calendar" as TabType, label: "Calendar", icon: Calendar },
+  { id: "messages" as TabType, label: "Messages", icon: MessageSquare }
 ];
 
 interface NavigationBarProps {

@@ -4,23 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Bell, User, Calendar, MessageSquare } from "lucide-react";
 import { NavigationBar, TabType } from "./NavigationBar";
 import { ProgressTab } from "./tabs/ProgressTab";
-import { AssignedTab } from "./tabs/AssignedTab";
-import { SessionsTab } from "./tabs/SessionsTab";
+import { JournalTab } from "./tabs/JournalTab";
+import { MeditationTab } from "./tabs/MeditationTab";
+import { CalendarTab } from "./tabs/CalendarTab";
 import { MessagesTab } from "./tabs/MessagesTab";
-import { TasksTab } from "./tabs/TasksTab";
 
 const renderTabContent = (activeTab: TabType) => {
   switch (activeTab) {
-    case "assigned":
-      return <AssignedTab />;
     case "progress":
       return <ProgressTab />;
-    case "sessions":
-      return <SessionsTab />;
+    case "journal":
+      return <JournalTab />;
+    case "meditation":
+      return <MeditationTab />;
+    case "calendar":
+      return <CalendarTab />;
     case "messages":
       return <MessagesTab />;
-    case "tasks":
-      return <TasksTab />;
     default:
       return <ProgressTab />;
   }
@@ -54,20 +54,20 @@ export const Dashboard = () => {
           <div className="grid grid-cols-2 gap-4 mt-6">
             <Card 
               className="bg-gradient-to-br from-primary to-purple-primary border-none shadow-lg cursor-pointer"
-              onClick={() => setActiveTab("sessions")}
+              onClick={() => setActiveTab("meditation")}
             >
               <div className="p-4 text-center">
                 <Calendar className="h-8 w-8 text-primary-foreground mx-auto mb-2" />
-                <h3 className="font-medium text-primary-foreground">Sessions</h3>
+                <h3 className="font-medium text-primary-foreground">Meditation</h3>
               </div>
             </Card>
             <Card 
               className="bg-gradient-to-br from-secondary to-purple-secondary border-none shadow-lg cursor-pointer"
-              onClick={() => setActiveTab("messages")}
+              onClick={() => setActiveTab("journal")}
             >
               <div className="p-4 text-center">
                 <MessageSquare className="h-8 w-8 text-secondary-foreground mx-auto mb-2" />
-                <h3 className="font-medium text-secondary-foreground">Messages</h3>
+                <h3 className="font-medium text-secondary-foreground">Journal</h3>
               </div>
             </Card>
           </div>
