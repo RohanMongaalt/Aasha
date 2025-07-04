@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useFirestore } from "@/hooks/useFirestore";
 
 const moodEmojis = [
   { emoji: "😞", value: 1, label: "Very Sad" },
@@ -11,6 +12,26 @@ const moodEmojis = [
 
 export const MoodSelector = () => {
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const { addMoodEntry } = useFirestore();
+  
+  // Mock user ID - replace with actual auth
+  const userId = "current-user-id";
+
+  const handleSubmit = async () => {
+    if (selectedMood !== null) {
+      try {
+        await addMoodEntry({
+          mood: selectedMood,
+          userId
+        });
+        setIsSubmitted(true);
+        console.log("Mood logged:", selectedMood);
+      } catch (error) {
+        console.error("Error saving mood:", error);
+      }
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -38,8 +59,12 @@ export const MoodSelector = () => {
               {moodEmojis[selectedMood - 1].label}
             </span>
           </p>
-          <Button className="mt-3 bg-primary hover:bg-primary/90">
-            Save Mood Entry
+          <Button 
+            className="mt-3 bg-primary hover:bg-primary/90" 
+            onClick={handleSubmit}
+            disabled={isSubmitted}
+          >
+            {isSubmitted ? "Mood Saved!" : "Save Mood Entry"}
           </Button>
         </div>
       )}

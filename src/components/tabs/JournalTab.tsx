@@ -4,29 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Calendar, Plus, BookOpen } from "lucide-react";
+import { JournalEntryDialog } from "@/components/JournalEntryDialog";
+import { useFirestore, JournalEntry } from "@/hooks/useFirestore";
 
 export const JournalTab = () => {
-  const [entries, setEntries] = useState([
-    { id: 1, title: "Gratitude Practice", content: "Today I'm grateful for...", date: "Dec 15, 2024" },
-    { id: 2, title: "Daily Reflection", content: "My mood has been improving...", date: "Dec 14, 2024" }
-  ]);
+  const { addJournalEntry, useJournalEntries } = useFirestore();
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Mock user ID - replace with actual auth
+  const userId = "current-user-id";
+  const { entries, loading } = useJournalEntries(userId);
 
-  const addEntry = () => {
+  const addEntry = async () => {
     if (newTitle.trim() && newContent.trim()) {
-      const newEntry = {
-        id: entries.length + 1,
-        title: newTitle,
-        content: newContent,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      };
-      setEntries([newEntry, ...entries]);
+      await addJournalEntry({
+        title: newTitle.trim(),
+        content: newContent.trim(),
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        userId
+      });
       setNewTitle("");
       setNewContent("");
       setIsAdding(false);
     }
+  };
+
+  const handleEntryClick = (entry: JournalEntry) => {
+    setSelectedEntry(entry);
+    setDialogOpen(true);
   };
 
   return (
@@ -66,24 +75,46 @@ export const JournalTab = () => {
       )}
 
       {/* Journal Entries */}
-      {entries.map((entry) => (
-        <Card key={entry.id} className="bg-gradient-to-br from-card to-purple-secondary/10 border-purple-secondary/20">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground">{entry.title}</h3>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>{entry.date}</span>
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading entries...</p>
+        </div>
+      ) : entries.length > 0 ? (
+        entries.map((entry) => (
+          <Card 
+            key={entry.id} 
+            className="bg-gradient-to-br from-card to-purple-secondary/10 border-purple-secondary/20 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => handleEntryClick(entry)}
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-foreground">{entry.title}</h3>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>{entry.date}</span>
+                </div>
+              </div>
+              <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2">
+                {entry.content}
+              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <BookOpen className="h-4 w-4 text-purple-primary" />
+                <span className="text-xs text-muted-foreground">Click to read full entry</span>
               </div>
             </div>
-            <p className="text-muted-foreground text-sm leading-relaxed">{entry.content}</p>
-            <div className="flex items-center gap-2 mt-3">
-              <BookOpen className="h-4 w-4 text-purple-primary" />
-              <span className="text-xs text-muted-foreground">Personal Entry</span>
-            </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        ))
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No journal entries yet. Start writing your first entry!</p>
+        </div>
+      )}
+
+      <JournalEntryDialog 
+        entry={selectedEntry}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 };

@@ -2,22 +2,31 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { CheckSquare, Square, Plus, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { CheckSquare, Square, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { AddTaskDialog } from "@/components/AddTaskDialog";
+import { useFirestore } from "@/hooks/useFirestore";
 
 export const CalendarTab = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [tasks, setTasks] = useState([
-    { id: 1, title: "Morning meditation", completed: true, date: "2024-12-15", time: "08:00" },
-    { id: 2, title: "Therapy session", completed: false, date: "2024-12-15", time: "14:00" },
-    { id: 3, title: "Journal writing", completed: false, date: "2024-12-15", time: "20:00" },
-    { id: 4, title: "Breathing exercise", completed: true, date: "2024-12-16", time: "09:00" },
-    { id: 5, title: "Mood check-in", completed: false, date: "2024-12-16", time: "18:00" }
-  ]);
+  const { addTask, updateTask, useTasks } = useFirestore();
+  
+  // Mock user ID - replace with actual auth
+  const userId = "current-user-id";
+  const { tasks, loading } = useTasks(userId);
 
-  const toggleTask = (id: number) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+  const toggleTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      await updateTask(id, { completed: !task.completed });
+    }
+  };
+
+  const handleAddTask = async (newTask: { title: string; date: string; time: string; repeat: string }) => {
+    await addTask({
+      ...newTask,
+      completed: false,
+      userId
+    });
   };
 
   const getTasksForDate = (date: Date | undefined) => {
@@ -126,10 +135,7 @@ export const CalendarTab = () => {
       )}
 
       {/* Quick Actions */}
-      <Button className="w-full bg-primary hover:bg-primary/90">
-        <Plus className="h-4 w-4 mr-2" />
-        Add New Task
-      </Button>
+      <AddTaskDialog onAddTask={handleAddTask} />
     </div>
   );
 };
