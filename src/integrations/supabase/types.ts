@@ -14,7 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      journal_entries: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          mood_rating: number | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          mood_rating?: number | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          mood_rating?: number | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          datetime: string | null
+          id: string
+          repeat: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          datetime?: string | null
+          id?: string
+          repeat?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          datetime?: string | null
+          id?: string
+          repeat?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      resources: {
+        Row: {
+          description: string | null
+          id: string
+          link: string | null
+          title: string | null
+          type: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          link?: string | null
+          title?: string | null
+          type?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          link?: string | null
+          title?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
