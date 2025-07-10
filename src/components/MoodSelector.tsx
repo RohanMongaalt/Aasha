@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useFirestore } from "@/hooks/useFirestore";
+import { useSupabase } from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const moodEmojis = [
   { emoji: "😞", value: 1, label: "Very Sad" },
@@ -10,23 +11,33 @@ const moodEmojis = [
   { emoji: "😊", value: 5, label: "Very Happy" }
 ];
 
-export const MoodSelector = () => {
+interface MoodSelectorProps {
+  isPatient?: boolean;
+  patientSession?: any;
+}
+
+export const MoodSelector = ({ isPatient = false, patientSession }: MoodSelectorProps) => {
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const { addMoodEntry } = useFirestore();
-  
-  // Mock user ID - replace with actual auth
-  const userId = "current-user-id";
+  const { saveMoodEntry } = useSupabase();
 
   const handleSubmit = async () => {
     if (selectedMood !== null) {
       try {
-        await addMoodEntry({
-          mood: selectedMood,
-          userId
-        });
-        setIsSubmitted(true);
-        console.log("Mood logged:", selectedMood);
+        const today = new Date().toISOString().split('T')[0];
+        
+        let userId;
+        if (isPatient && patientSession) {
+          userId = patientSession.id;
+        } else {
+          const { data: { user } } = await supabase.auth.getUser();
+          userId = user?.id;
+        }
+        
+        if (userId) {
+          await saveMoodEntry(selectedMood, today, userId);
+          setIsSubmitted(true);
+        }
       } catch (error) {
         console.error("Error saving mood:", error);
       }

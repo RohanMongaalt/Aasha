@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, Clock, Heart, Wind } from "lucide-react";
 import { useState } from "react";
 
-export const MeditationTab = () => {
+interface MeditationTabProps {
+  isPatient?: boolean;
+  patientSession?: any;
+}
+
+export const MeditationTab = ({ isPatient = false, patientSession }: MeditationTabProps) => {
   const [currentSession, setCurrentSession] = useState<number | null>(null);
 
   const meditations = [

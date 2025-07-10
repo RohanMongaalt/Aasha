@@ -9,24 +9,29 @@ import { MeditationTab } from "./tabs/MeditationTab";
 import { CalendarTab } from "./tabs/CalendarTab";
 import { MessagesTab } from "./tabs/MessagesTab";
 
-const renderTabContent = (activeTab: TabType) => {
+interface DashboardProps {
+  isPatient?: boolean;
+  patientSession?: any;
+}
+
+const renderTabContent = (activeTab: TabType, isPatient?: boolean, patientSession?: any) => {
   switch (activeTab) {
     case "progress":
-      return <ProgressTab />;
+      return <ProgressTab isPatient={isPatient} patientSession={patientSession} />;
     case "journal":
-      return <JournalTab />;
+      return <JournalTab isPatient={isPatient} patientSession={patientSession} />;
     case "meditation":
-      return <MeditationTab />;
+      return <MeditationTab isPatient={isPatient} patientSession={patientSession} />;
     case "calendar":
-      return <CalendarTab />;
+      return <CalendarTab isPatient={isPatient} patientSession={patientSession} />;
     case "messages":
-      return <MessagesTab />;
+      return <MessagesTab isPatient={isPatient} patientSession={patientSession} />;
     default:
-      return <ProgressTab />;
+      return <ProgressTab isPatient={isPatient} patientSession={patientSession} />;
   }
 };
 
-export const Dashboard = () => {
+export const Dashboard = ({ isPatient = false, patientSession }: DashboardProps = {}) => {
   const [activeTab, setActiveTab] = useState<TabType>("progress");
 
   return (
@@ -47,7 +52,7 @@ export const Dashboard = () => {
       </div>
 
       <div className="p-4 space-y-6 pb-24">
-        {renderTabContent(activeTab)}
+        {renderTabContent(activeTab, isPatient, patientSession)}
 
         {/* Quick Actions - Only show on progress tab */}
         {activeTab === "progress" && (

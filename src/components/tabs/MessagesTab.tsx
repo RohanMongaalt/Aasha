@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 
-export const MessagesTab = () => {
+interface MessagesTabProps {
+  isPatient?: boolean;
+  patientSession?: any;
+}
+
+export const MessagesTab = ({ isPatient = false, patientSession }: MessagesTabProps) => {
   const [newMessage, setNewMessage] = useState("");
   
   const conversations = [

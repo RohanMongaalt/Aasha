@@ -41,6 +41,84 @@ export type Database = {
         }
         Relationships: []
       }
+      meditation_files: {
+        Row: {
+          created_at: string | null
+          file_url: string
+          id: string
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_url: string
+          id?: string
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_url?: string
+          id?: string
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      mood_entries: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          mood: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          mood?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          mood?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      patients: {
+        Row: {
+          age: number | null
+          created_at: string | null
+          gender: string | null
+          id: string
+          name: string
+          pin: string
+          psychologist_id: string | null
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          name: string
+          pin: string
+          psychologist_id?: string | null
+        }
+        Update: {
+          age?: number | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          name?: string
+          pin?: string
+          psychologist_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -110,6 +188,33 @@ export type Database = {
           link?: string | null
           title?: string | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string | null
+          datetime: string | null
+          id: string
+          is_completed: boolean | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          datetime?: string | null
+          id?: string
+          is_completed?: boolean | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          datetime?: string | null
+          id?: string
+          is_completed?: boolean | null
+          title?: string
+          user_id?: string | null
         }
         Relationships: []
       }

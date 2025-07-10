@@ -4,7 +4,12 @@ import { MoodChart } from "../MoodChart";
 import { GoalChart } from "../GoalChart";
 import { MoodSelector } from "../MoodSelector";
 
-export const ProgressTab = () => {
+interface ProgressTabProps {
+  isPatient?: boolean;
+  patientSession?: any;
+}
+
+export const ProgressTab = ({ isPatient = false, patientSession }: ProgressTabProps) => {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -34,7 +39,7 @@ export const ProgressTab = () => {
       <Card className="bg-gradient-to-br from-card to-purple-secondary/10 border-purple-secondary/20 shadow-lg backdrop-blur-sm">
         <div className="p-6">
           <h3 className="text-lg font-medium text-foreground mb-4">How are you feeling today?</h3>
-          <MoodSelector />
+          <MoodSelector isPatient={isPatient} patientSession={patientSession} />
         </div>
       </Card>
 

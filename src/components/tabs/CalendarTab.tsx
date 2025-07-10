@@ -1,42 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { CheckSquare, Square, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
-import { useFirestore } from "@/hooks/useFirestore";
+import { useSupabase } from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
 
-export const CalendarTab = () => {
+interface CalendarTabProps {
+  isPatient?: boolean;
+  patientSession?: any;
+}
+
+export const CalendarTab = ({ isPatient = false, patientSession }: CalendarTabProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const { addTask, updateTask, useTasks } = useFirestore();
+  const { createTask, updateTask, getTasks } = useSupabase();
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Mock user ID - replace with actual auth
-  const userId = "current-user-id";
-  const { tasks, loading } = useTasks(userId);
+  // Get user ID from auth or patient session
+  const getUserId = () => {
+    if (isPatient && patientSession) {
+      return patientSession.id;
+    }
+    return supabase.auth.getUser().then(({ data }) => data.user?.id);
+  };
+
+  useEffect(() => {
+    const loadTasks = async () => {
+      setLoading(true);
+      try {
+        const userId = await getUserId();
+        if (userId) {
+          const data = await getTasks(userId);
+          setTasks(data);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTasks();
+  }, [isPatient, patientSession]);
 
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
     if (task) {
-      await updateTask(id, { completed: !task.completed });
+      try {
+        const updatedTask = await updateTask(id, { is_completed: !task.is_completed });
+        if (updatedTask) {
+          setTasks(prev => prev.map(t => t.id === id ? updatedTask : t));
+        }
+      } catch (error) {
+        console.error('Error updating task:', error);
+      }
     }
   };
 
   const handleAddTask = async (newTask: { title: string; date: string; time: string; repeat: string }) => {
-    await addTask({
-      ...newTask,
-      completed: false,
-      userId
-    });
+    try {
+      const userId = await getUserId();
+      if (userId) {
+        const datetime = new Date(`${newTask.date}T${newTask.time}`);
+        const task = await createTask({
+          title: newTask.title,
+          datetime: datetime.toISOString(),
+          is_completed: false
+        }, userId);
+        if (task) {
+          setTasks(prev => [...prev, task]);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
   };
 
   const getTasksForDate = (date: Date | undefined) => {
     if (!date) return [];
     const dateStr = date.toISOString().split('T')[0];
-    return tasks.filter(task => task.date === dateStr);
+    return tasks.filter(task => {
+      if (!task.datetime) return false;
+      const taskDate = new Date(task.datetime).toISOString().split('T')[0];
+      return taskDate === dateStr;
+    });
   };
 
   const selectedDateTasks = getTasksForDate(selectedDate);
-  const completedCount = selectedDateTasks.filter(task => task.completed).length;
+  const completedCount = selectedDateTasks.filter(task => task.is_completed).length;
 
   return (
     <div className="space-y-4">
@@ -84,7 +134,7 @@ export const CalendarTab = () => {
                     onClick={() => toggleTask(task.id)}
                     className="p-0 h-auto"
                   >
-                    {task.completed ? (
+                    {task.is_completed ? (
                       <CheckSquare className="h-5 w-5 text-success" />
                     ) : (
                       <Square className="h-5 w-5 text-muted-foreground" />
@@ -92,7 +142,7 @@ export const CalendarTab = () => {
                   </Button>
                   <div className="flex-1">
                     <span className={`block ${
-                      task.completed 
+                      task.is_completed 
                         ? "text-muted-foreground line-through" 
                         : "text-foreground"
                     }`}>
@@ -100,7 +150,7 @@ export const CalendarTab = () => {
                     </span>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      <span>{task.time}</span>
+                      <span>{task.datetime ? new Date(task.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No time'}</span>
                     </div>
                   </div>
                 </div>

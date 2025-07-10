@@ -1,39 +1,72 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Calendar, Plus, BookOpen } from "lucide-react";
 import { JournalEntryDialog } from "@/components/JournalEntryDialog";
-import { useFirestore, JournalEntry } from "@/hooks/useFirestore";
+import { useSupabase } from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
 
-export const JournalTab = () => {
-  const { addJournalEntry, useJournalEntries } = useFirestore();
+interface JournalTabProps {
+  isPatient?: boolean;
+  patientSession?: any;
+}
+
+export const JournalTab = ({ isPatient = false, patientSession }: JournalTabProps) => {
+  const { saveJournalEntry, getJournalEntries } = useSupabase();
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [entries, setEntries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Mock user ID - replace with actual auth
-  const userId = "current-user-id";
-  const { entries, loading } = useJournalEntries(userId);
+  // Get user ID from auth or patient session
+  const getUserId = () => {
+    if (isPatient && patientSession) {
+      return patientSession.id;
+    }
+    return supabase.auth.getUser().then(({ data }) => data.user?.id);
+  };
+
+  useEffect(() => {
+    const loadEntries = async () => {
+      setLoading(true);
+      try {
+        const userId = await getUserId();
+        if (userId) {
+          const data = await getJournalEntries(userId);
+          setEntries(data);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEntries();
+  }, [isPatient, patientSession]);
 
   const addEntry = async () => {
     if (newTitle.trim() && newContent.trim()) {
-      await addJournalEntry({
-        title: newTitle.trim(),
-        content: newContent.trim(),
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        userId
-      });
-      setNewTitle("");
-      setNewContent("");
-      setIsAdding(false);
+      try {
+        const userId = await getUserId();
+        if (userId) {
+          const newEntry = await saveJournalEntry(newContent.trim(), userId);
+          if (newEntry) {
+            setEntries(prev => [newEntry, ...prev]);
+          }
+        }
+        setNewTitle("");
+        setNewContent("");
+        setIsAdding(false);
+      } catch (error) {
+        console.error('Error adding journal entry:', error);
+      }
     }
   };
 
-  const handleEntryClick = (entry: JournalEntry) => {
+  const handleEntryClick = (entry: any) => {
     setSelectedEntry(entry);
     setDialogOpen(true);
   };
@@ -88,10 +121,10 @@ export const JournalTab = () => {
           >
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground">{entry.title}</h3>
+                <h3 className="font-semibold text-foreground">{entry.title || 'Journal Entry'}</h3>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>{entry.date}</span>
+                  <span>{new Date(entry.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
               <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2">
