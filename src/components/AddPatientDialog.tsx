@@ -37,11 +37,10 @@ export const AddPatientDialog = ({ onPatientAdded }: AddPatientDialogProps) => {
 
       // Check if patient email already exists for this psychologist
       const { data: existingPatient } = await supabase
-        .from('profiles')
+        .from('patients')
         .select('email')
         .eq('email', email)
         .eq('psychologist_id', user.id)
-        .eq('role', 'patient')
         .single();
 
       if (existingPatient) {
@@ -53,17 +52,14 @@ export const AddPatientDialog = ({ onPatientAdded }: AddPatientDialogProps) => {
         return;
       }
 
-      // Create patient profile with a temporary UUID that will be replaced when patient registers
-      const tempId = crypto.randomUUID();
+      // Create patient record in patients table
       const { error } = await supabase
-        .from('profiles')
+        .from('patients')
         .insert({
-          id: tempId,
           name,
           email,
-          role: 'patient',
           psychologist_id: user.id,
-          patient_invited_at: new Date().toISOString(),
+          is_registered: false,
         });
 
       if (error) throw error;

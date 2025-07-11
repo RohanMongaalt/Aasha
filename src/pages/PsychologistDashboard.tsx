@@ -11,8 +11,8 @@ interface Patient {
   id: string;
   name: string | null;
   email: string | null;
-  patient_invited_at: string | null;
-  registered: boolean;
+  created_at: string | null;
+  is_registered: boolean;
 }
 
 export const PsychologistDashboard = () => {
@@ -27,20 +27,14 @@ export const PsychologistDashboard = () => {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, patient_invited_at')
-        .eq('role', 'patient')
+        .from('patients')
+        .select('id, name, email, created_at, is_registered')
         .eq('psychologist_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const patientsWithStatus = data?.map(patient => ({
-        ...patient,
-        registered: !!patient.id, // If they have an auth id, they're registered
-      })) || [];
-
-      setPatients(patientsWithStatus);
+      setPatients(data || []);
     } catch (error) {
       console.error('Error fetching patients:', error);
     } finally {
@@ -56,12 +50,12 @@ export const PsychologistDashboard = () => {
     patient.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusColor = (registered: boolean) => {
-    return registered ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800';
+  const getStatusColor = (isRegistered: boolean) => {
+    return isRegistered ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800';
   };
 
-  const getStatusText = (registered: boolean) => {
-    return registered ? 'Registered' : 'Pending';
+  const getStatusText = (isRegistered: boolean) => {
+    return isRegistered ? 'Registered' : 'Pending';
   };
 
   return (
@@ -121,14 +115,14 @@ export const PsychologistDashboard = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-foreground">{patient.name}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(patient.registered)}`}>
-                        {getStatusText(patient.registered)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(patient.is_registered)}`}>
+                        {getStatusText(patient.is_registered)}
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p>Email: {patient.email}</p>
-                      {patient.patient_invited_at && (
-                        <p>Invited: {new Date(patient.patient_invited_at).toLocaleDateString()}</p>
+                      {patient.created_at && (
+                        <p>Added: {new Date(patient.created_at).toLocaleDateString()}</p>
                       )}
                     </div>
                   </div>
