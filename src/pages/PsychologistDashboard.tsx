@@ -1,44 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Target, Search, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { AddPatientDialog } from "@/components/AddPatientDialog";
 
 interface Patient {
   id: string;
-  name: string;
-  lastSession: string;
-  status: 'active' | 'inactive';
-  moodTrend: 'improving' | 'declining' | 'stable';
+  name: string | null;
+  email: string | null;
+  patient_invited_at: string | null;
+  registered: boolean;
 }
 
 export const PsychologistDashboard = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // Mock data - replace with Firebase data
-  const [patients] = useState<Patient[]>([
-    { id: '1', name: 'Sarah Johnson', lastSession: '2024-12-14', status: 'active', moodTrend: 'improving' },
-    { id: '2', name: 'Michael Chen', lastSession: '2024-12-13', status: 'active', moodTrend: 'stable' },
-    { id: '3', name: 'Emily Davis', lastSession: '2024-12-12', status: 'inactive', moodTrend: 'declining' },
-    { id: '4', name: 'David Wilson', lastSession: '2024-12-11', status: 'active', moodTrend: 'improving' },
-  ]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchPatients = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  const getMoodTrendColor = (trend: string) => {
-    switch (trend) {
-      case 'improving': return 'text-green-500';
-      case 'declining': return 'text-red-500';
-      default: return 'text-yellow-500';
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, email, patient_invited_at')
+        .eq('role', 'patient')
+        .eq('psychologist_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const patientsWithStatus = data?.map(patient => ({
+        ...patient,
+        registered: !!patient.id, // If they have an auth id, they're registered
+      })) || [];
+
+      setPatients(patientsWithStatus);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    return status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  const filteredPatients = patients.filter(patient =>
+    patient.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (registered: boolean) => {
+    return registered ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800';
+  };
+
+  const getStatusText = (registered: boolean) => {
+    return registered ? 'Registered' : 'Pending';
   };
 
   return (
@@ -75,15 +98,18 @@ export const PsychologistDashboard = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search patients..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+        {/* Search and Add Patient */}
+        <div className="flex gap-4 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search patients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <AddPatientDialog onPatientAdded={fetchPatients} />
         </div>
 
         {/* Patients List */}
@@ -95,15 +121,15 @@ export const PsychologistDashboard = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-foreground">{patient.name}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(patient.status)}`}>
-                        {patient.status}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(patient.registered)}`}>
+                        {getStatusText(patient.registered)}
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      <p>Last session: {patient.lastSession}</p>
-                      <p className={`font-medium ${getMoodTrendColor(patient.moodTrend)}`}>
-                        Mood trend: {patient.moodTrend}
-                      </p>
+                      <p>Email: {patient.email}</p>
+                      {patient.patient_invited_at && (
+                        <p>Invited: {new Date(patient.patient_invited_at).toLocaleDateString()}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">

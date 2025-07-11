@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      goals: {
+        Row: {
+          created_at: string
+          current_progress: number | null
+          description: string | null
+          id: string
+          target_value: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_progress?: number | null
+          description?: string | null
+          id?: string
+          target_value?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_progress?: number | null
+          description?: string | null
+          id?: string
+          target_value?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           content: string | null
@@ -125,21 +158,27 @@ export type Database = {
           email: string | null
           id: string
           name: string | null
-          role: string | null
+          patient_invited_at: string | null
+          psychologist_id: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
         }
         Insert: {
           created_at?: string | null
           email?: string | null
           id: string
           name?: string | null
-          role?: string | null
+          patient_invited_at?: string | null
+          psychologist_id?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
         }
         Update: {
           created_at?: string | null
           email?: string | null
           id?: string
           name?: string | null
-          role?: string | null
+          patient_invited_at?: string | null
+          psychologist_id?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: []
       }
@@ -226,7 +265,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "psychologist" | "patient"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -353,6 +392,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["psychologist", "patient"],
+    },
   },
 } as const
