@@ -41,7 +41,7 @@ export const AddPatientDialog = ({ onPatientAdded }: AddPatientDialogProps) => {
         .select('email')
         .eq('email', email)
         .eq('psychologist_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingPatient) {
         toast({
@@ -52,21 +52,33 @@ export const AddPatientDialog = ({ onPatientAdded }: AddPatientDialogProps) => {
         return;
       }
 
+      // Create Supabase Auth user for the patient
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: {
+          name,
+          role: 'patient'
+        }
+      });
+
+      if (authError) throw authError;
+
       // Create patient record in patients table
-      const { error } = await supabase
+      const { error: patientError } = await supabase
         .from('patients')
         .insert({
           name,
           email,
           psychologist_id: user.id,
-          is_registered: false,
+          is_registered: true,
         });
 
-      if (error) throw error;
+      if (patientError) throw patientError;
 
       toast({
-        title: "Patient invited",
-        description: `${name} has been invited. They can now register with this email.`,
+        title: "Patient added successfully",
+        description: `${name} has been registered and can now log in with their email.`,
       });
 
       // Reset form and close dialog

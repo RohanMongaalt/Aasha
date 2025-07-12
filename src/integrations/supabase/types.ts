@@ -126,28 +126,31 @@ export type Database = {
         Row: {
           age: number | null
           created_at: string | null
+          email: string | null
           gender: string | null
           id: string
+          is_registered: boolean | null
           name: string
-          pin: string
           psychologist_id: string | null
         }
         Insert: {
           age?: number | null
           created_at?: string | null
+          email?: string | null
           gender?: string | null
           id?: string
+          is_registered?: boolean | null
           name: string
-          pin: string
           psychologist_id?: string | null
         }
         Update: {
           age?: number | null
           created_at?: string | null
+          email?: string | null
           gender?: string | null
           id?: string
+          is_registered?: boolean | null
           name?: string
-          pin?: string
           psychologist_id?: string | null
         }
         Relationships: []

@@ -9,41 +9,60 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const PatientLoginPage = () => {
-  const [pin, setPin] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handlePinLogin = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error("Authentication failed");
+      }
+
+      // Query the patients table to get patient data using the authenticated user's email
+      const { data: patient, error: patientError } = await supabase
         .from('patients')
         .select('*')
-        .eq('pin', pin)
+        .eq('email', authData.user.email)
         .single();
 
-      if (error) {
-        throw new Error('Invalid PIN. Please check your PIN and try again.');
+      if (patientError || !patient) {
+        toast({
+          title: "Access denied",
+          description: "You are not registered as a patient in this system.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+        return;
       }
 
-      if (data) {
-        // Store patient session in localStorage
-        localStorage.setItem('patientSession', JSON.stringify({
-          id: data.id,
-          name: data.name,
-          psychologist_id: data.psychologist_id
-        }));
-        
-        toast({
-          title: "Welcome!",
-          description: `Hello ${data.name}, you're now logged in.`,
-        });
-        
-        navigate('/patient-dashboard');
-      }
+      // Store patient session data in localStorage
+      localStorage.setItem('patientSession', JSON.stringify({
+        id: patient.id,
+        name: patient.name,
+        email: patient.email,
+        psychologist_id: patient.psychologist_id
+      }));
+      
+      toast({
+        title: "Welcome!",
+        description: `Hello ${patient.name}, you're now logged in.`,
+      });
+      
+      navigate('/patient-dashboard');
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -53,11 +72,6 @@ const PatientLoginPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setPin(value);
   };
 
   return (
@@ -78,35 +92,47 @@ const PatientLoginPage = () => {
               Patient Login
             </h1>
             <p className="text-muted-foreground">
-              Enter your 6-digit PIN to access your dashboard
+              Sign in with your email and password
             </p>
           </div>
 
-          <form onSubmit={handlePinLogin} className="space-y-6">
+          <form onSubmit={handleEmailLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="pin">6-Digit PIN</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="pin"
-                type="text"
-                value={pin}
-                onChange={handlePinChange}
-                placeholder="000000"
-                className="bg-background/50 border-primary/20 text-center text-2xl tracking-widest"
-                maxLength={6}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="bg-background/50 border-primary/20"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your password"
+                className="bg-background/50 border-primary/20"
                 required
               />
               <p className="text-sm text-muted-foreground">
-                Enter the PIN provided by your psychologist
+                Use the credentials provided by your psychologist
               </p>
             </div>
             
             <Button 
               type="submit" 
               className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
-              disabled={loading || pin.length !== 6}
+              disabled={loading || !email || !password}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Access Dashboard
+              Sign In
             </Button>
           </form>
         </Card>
