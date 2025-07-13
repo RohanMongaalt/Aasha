@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Target, Search, Users } from "lucide-react";
+import { MessageSquare, Target, Search, Users, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AddPatientDialog } from "@/components/AddPatientDialog";
@@ -20,6 +20,7 @@ export const PsychologistDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   const fetchPatients = async () => {
     try {
@@ -43,8 +44,29 @@ export const PsychologistDashboard = () => {
   };
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+      setUser(user);
+      fetchPatients();
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        navigate('/auth');
+      } else if (event === 'SIGNED_IN') {
+        setUser(session.user);
+        fetchPatients();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const filteredPatients = patients.filter(patient =>
     patient.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -58,13 +80,28 @@ export const PsychologistDashboard = () => {
     return isRegistered ? 'Registered' : 'Pending';
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-purple-header p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Psychologist Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Manage your patients and track their progress</p>
+        <div className="flex justify-between items-center mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-3xl font-bold text-foreground">Psychologist Dashboard</h1>
+            <p className="text-muted-foreground mt-2">Manage your patients and track their progress</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleSignOut}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
 
         {/* Stats Overview */}
