@@ -52,33 +52,21 @@ export const AddPatientDialog = ({ onPatientAdded }: AddPatientDialogProps) => {
         return;
       }
 
-      // Create Supabase Auth user for the patient
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: {
-          name,
-          role: 'patient'
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Create patient record in patients table
+      // Create patient record in patients table (patient will sign up later)
       const { error: patientError } = await supabase
         .from('patients')
         .insert({
           name,
           email,
           psychologist_id: user.id,
-          is_registered: true,
+          is_registered: false,
         });
 
       if (patientError) throw patientError;
 
       toast({
         title: "Patient added successfully",
-        description: `${name} has been registered and can now log in with their email.`,
+        description: `${name} has been invited. They can now sign up with their email.`,
       });
 
       // Reset form and close dialog
