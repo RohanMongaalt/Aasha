@@ -344,6 +344,7 @@ export const useSupabase = () => {
     }
   };
 };
+
   return {
     saveMoodEntry,
     getMoodEntries,
