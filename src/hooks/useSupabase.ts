@@ -289,24 +289,6 @@ export const useSupabase = () => {
       return [];
     }
   };
-
-  return {
-    saveMoodEntry,
-    getMoodEntries,
-    saveTasks,
-    getTasks,
-    createTask,
-    updateTask,
-    saveJournalEntry,
-    getJournalEntries,
-    createPatient,
-    getPatients,
-    uploadMeditationFile,
-    getMeditationFiles,
-    saveGoal,
-    getGoals
-  };
-
   // Goals
   const saveGoal = async (goal: any, userId: string) => {
     try {
@@ -362,3 +344,20 @@ export const useSupabase = () => {
     }
   };
 };
+  return {
+    saveMoodEntry,
+    getMoodEntries,
+    saveTasks,
+    getTasks,
+    createTask,
+    updateTask,
+    saveJournalEntry,
+    getJournalEntries,
+    createPatient,
+    getPatients,
+    uploadMeditationFile,
+    getMeditationFiles,
+    saveGoal,
+    getGoals
+  };
+
