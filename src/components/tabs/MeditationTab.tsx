@@ -10,6 +10,7 @@ interface MeditationTabProps {
 
 export const MeditationTab = ({ isPatient = false, patientSession }: MeditationTabProps) => {
   const [currentSession, setCurrentSession] = useState<number | null>(null);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
   const meditations = [
     { 
@@ -18,7 +19,8 @@ export const MeditationTab = ({ isPatient = false, patientSession }: MeditationT
       duration: "10 min", 
       type: "Breathing",
       description: "Start your day with focused breathing",
-      icon: Wind
+      icon: Wind,
+      audioUrl: "https://kjvzkylctprhxxilaeah.supabase.co/storage/v1/object/public/guided_meditations/morning-mindfulness.mp3"
     },
     { 
       id: 2, 
@@ -26,7 +28,8 @@ export const MeditationTab = ({ isPatient = false, patientSession }: MeditationT
       duration: "15 min", 
       type: "Relaxation",
       description: "Let go of tension and find calm",
-      icon: Heart
+      icon: Heart,
+      audioUrl: "https://kjvzkylctprhxxilaeah.supabase.co/storage/v1/object/public/guided_meditations/stress-relief.mp3"
     },
     { 
       id: 3, 
@@ -34,7 +37,8 @@ export const MeditationTab = ({ isPatient = false, patientSession }: MeditationT
       duration: "20 min", 
       type: "Sleep",
       description: "Gentle meditation for better rest",
-      icon: Clock
+      icon: Clock,
+      audioUrl: "https://kjvzkylctprhxxilaeah.supabase.co/storage/v1/object/public/guided_meditations/sleep-preparation.mp3"
     },
     { 
       id: 4, 
@@ -42,12 +46,24 @@ export const MeditationTab = ({ isPatient = false, patientSession }: MeditationT
       duration: "12 min", 
       type: "Healing",
       description: "Techniques to manage anxious thoughts",
-      icon: Heart
+      icon: Heart,
+      audioUrl: "https://kjvzkylctprhxxilaeah.supabase.co/storage/v1/object/public/guided_meditations/anxiety-relief.mp3"
     }
   ];
 
-  const toggleSession = (id: number) => {
-    setCurrentSession(currentSession === id ? null : id);
+  const toggleSession = (id: number, url: string) => {
+    if (currentSession === id) {
+      // Stop current session
+      audio?.pause();
+      setCurrentSession(null);
+      return;
+    }
+
+    // Start new session
+    const newAudio = new Audio(url);
+    newAudio.play();
+    setAudio(newAudio);
+    setCurrentSession(id);
   };
 
   return (
@@ -69,11 +85,14 @@ export const MeditationTab = ({ isPatient = false, patientSession }: MeditationT
             </h3>
             <p className="text-white/80 text-sm mb-4">Session in progress</p>
             <div className="flex justify-center gap-3">
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary" size="sm" onClick={() => audio?.pause()}>
                 <Pause className="h-4 w-4 mr-2" />
                 Pause
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentSession(null)}>
+              <Button variant="outline" size="sm" onClick={() => {
+                audio?.pause();
+                setCurrentSession(null);
+              }}>
                 Stop
               </Button>
             </div>
@@ -104,7 +123,7 @@ export const MeditationTab = ({ isPatient = false, patientSession }: MeditationT
                 </div>
                 <Button 
                   size="sm" 
-                  onClick={() => toggleSession(meditation.id)}
+                  onClick={() => toggleSession(meditation.id, meditation.audioUrl)}
                   className={currentSession === meditation.id ? "bg-destructive" : "bg-primary"}
                 >
                   {currentSession === meditation.id ? (
