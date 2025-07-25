@@ -302,6 +302,63 @@ export const useSupabase = () => {
     createPatient,
     getPatients,
     uploadMeditationFile,
-    getMeditationFiles
+    getMeditationFiles,
+    saveGoal,
+    getGoals
+  };
+
+  // Goals
+  const saveGoal = async (goal: any, userId: string) => {
+    try {
+      const goalData = {
+        user_id: userId,
+        title: goal.title,
+        description: goal.description || null,
+        target_value: goal.targetValue || null,
+        current_progress: goal.progress || 0,
+        updated_at: new Date().toISOString()
+      };
+
+      // If goal has an ID, include it for upsert
+      if (goal.id) {
+        goalData.id = goal.id;
+      }
+
+      const { data, error } = await supabase
+        .from('goals')
+        .upsert(goalData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error saving goal",
+        description: error.message,
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const getGoals = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      toast({
+        title: "Error loading goals",
+        description: error.message,
+        variant: "destructive"
+      });
+      return [];
+    }
   };
 };

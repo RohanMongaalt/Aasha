@@ -12,12 +12,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ArrowLeft, Plus, Target, Calendar as CalendarIcon, CheckSquare, Square } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useSupabase } from "@/hooks/useSupabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface Goal {
   id: string;
   title: string;
   description: string;
-  targetDate: string;
+  targetValue?: number;
   progress: number;
 }
 
@@ -31,24 +33,13 @@ interface Task {
 export const GoalsTasksPage = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
+  const { saveGoal, getGoals } = useSupabase();
+  const { toast } = useToast();
   
-  // Mock data - replace with Firebase data
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: '1',
-      title: 'Improve Daily Meditation',
-      description: 'Practice meditation for 10 minutes daily',
-      targetDate: '2024-12-31',
-      progress: 60
-    },
-    {
-      id: '2',
-      title: 'Reduce Anxiety Levels',
-      description: 'Implement breathing exercises and mindfulness techniques',
-      targetDate: '2024-12-25',
-      progress: 40
-    }
-  ]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [tasks, setTasks] = useState<Task[]>([
     { id: '1', title: 'Morning meditation', completed: true, dueDate: '2024-12-15' },
@@ -67,10 +58,38 @@ export const GoalsTasksPage = () => {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDate, setNewTaskDate] = useState<Date>();
 
+  // Load goals when component mounts or patientId changes
+  useEffect(() => {
+    const loadGoals = async () => {
+      if (!patientId) return;
+      
+      setLoading(true);
+      try {
+        const data = await getGoals(patientId);
+        // Transform data to match our interface
+        const transformedGoals = data.map((goal: any) => ({
+          id: goal.id,
+          title: goal.title,
+          description: goal.description || '',
+          targetValue: goal.target_value,
+          progress: goal.current_progress || 0
+        }));
+        setGoals(transformedGoals);
+      } catch (error) {
+        console.error('Error loading goals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGoals();
+  }, [patientId, getGoals]);
+
   const updateGoalProgress = (goalId: string, newProgress: number) => {
     setGoals(goals.map(goal => 
       goal.id === goalId ? { ...goal, progress: newProgress } : goal
     ));
+    setHasUnsavedChanges(true);
   };
 
   const toggleTask = (taskId: string) => {
@@ -80,19 +99,63 @@ export const GoalsTasksPage = () => {
   };
 
   const addNewGoal = () => {
-    if (newGoalTitle.trim() && newGoalDescription.trim() && newGoalDate) {
+    if (newGoalTitle.trim() && newGoalDescription.trim()) {
       const newGoal: Goal = {
-        id: Date.now().toString(),
+        id: `temp-${Date.now()}`, // Temporary ID for new goals
         title: newGoalTitle,
         description: newGoalDescription,
-        targetDate: newGoalDate.toISOString().split('T')[0],
+        targetValue: 100, // Default target value
         progress: 0
       };
       setGoals([...goals, newGoal]);
+      setHasUnsavedChanges(true);
       setNewGoalTitle("");
       setNewGoalDescription("");
       setNewGoalDate(undefined);
       setNewGoalOpen(false);
+    }
+  };
+
+  const handleSaveGoals = async () => {
+    if (!patientId) return;
+    
+    setSaving(true);
+    try {
+      // Save all goals to Supabase
+      const savedGoals = [];
+      for (const goal of goals) {
+        const goalToSave = {
+          ...goal,
+          // Don't include temporary IDs
+          id: goal.id.startsWith('temp-') ? undefined : goal.id
+        };
+        const savedGoal = await saveGoal(goalToSave, patientId);
+        savedGoals.push({
+          id: savedGoal.id,
+          title: savedGoal.title,
+          description: savedGoal.description || '',
+          targetValue: savedGoal.target_value,
+          progress: savedGoal.current_progress || 0
+        });
+      }
+      
+      // Update local state with saved goals (including new IDs)
+      setGoals(savedGoals);
+      setHasUnsavedChanges(false);
+      
+      toast({
+        title: "Goals saved successfully",
+        description: "All goal changes have been saved.",
+      });
+    } catch (error) {
+      console.error('Error saving goals:', error);
+      toast({
+        title: "Error saving goals",
+        description: "Failed to save goal changes. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -129,102 +192,136 @@ export const GoalsTasksPage = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-foreground">Goals</h2>
-            <Dialog open={newGoalOpen} onOpenChange={setNewGoalOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Goal
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Goal</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="goal-title">Goal Title</Label>
-                    <Input
-                      id="goal-title"
-                      value={newGoalTitle}
-                      onChange={(e) => setNewGoalTitle(e.target.value)}
-                      placeholder="Enter goal title..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="goal-description">Description</Label>
-                    <Textarea
-                      id="goal-description"
-                      value={newGoalDescription}
-                      onChange={(e) => setNewGoalDescription(e.target.value)}
-                      placeholder="Describe the goal..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Target Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !newGoalDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {newGoalDate ? format(newGoalDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={newGoalDate}
-                          onSelect={setNewGoalDate}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={addNewGoal} className="flex-1">Create Goal</Button>
-                    <Button variant="outline" onClick={() => setNewGoalOpen(false)} className="flex-1">
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {goals.map((goal) => (
-            <Card key={goal.id} className="bg-gradient-to-br from-card to-purple-primary/10 border-purple-primary/20">
-              <div className="p-4">
-                <div className="flex items-start gap-4">
-                  <Target className="h-6 w-6 text-primary mt-1" />
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{goal.title}</h3>
-                      <p className="text-sm text-muted-foreground">{goal.description}</p>
-                      <p className="text-xs text-muted-foreground">Target: {goal.targetDate}</p>
-                    </div>
+            <div className="flex gap-2">
+              <Dialog open={newGoalOpen} onOpenChange={setNewGoalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Goal
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Goal</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">Progress</span>
-                        <span className="text-sm text-muted-foreground">{goal.progress}%</span>
-                      </div>
-                      <Slider
-                        value={[goal.progress]}
-                        onValueChange={(value) => updateGoalProgress(goal.id, value[0])}
-                        max={100}
-                        step={5}
-                        className="w-full"
+                      <Label htmlFor="goal-title">Goal Title</Label>
+                      <Input
+                        id="goal-title"
+                        value={newGoalTitle}
+                        onChange={(e) => setNewGoalTitle(e.target.value)}
+                        placeholder="Enter goal title..."
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="goal-description">Description</Label>
+                      <Textarea
+                        id="goal-description"
+                        value={newGoalDescription}
+                        onChange={(e) => setNewGoalDescription(e.target.value)}
+                        placeholder="Describe the goal..."
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-4">
+                      <Button onClick={addNewGoal} className="flex-1">Create Goal</Button>
+                      <Button variant="outline" onClick={() => setNewGoalOpen(false)} className="flex-1">
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
+                </DialogContent>
+              </Dialog>
+              
+              {hasUnsavedChanges && (
+                <Button 
+                  onClick={handleSaveGoals} 
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Goals'
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-2">Loading goals...</p>
+            </div>
+          ) : goals.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No goals created yet. Add your first goal above!</p>
+            </div>
+          ) : (
+            goals.map((goal) => (
+              <Card key={goal.id} className="bg-gradient-to-br from-card to-purple-primary/10 border-purple-primary/20">
+                <div className="p-4">
+                  <div className="flex items-start gap-4">
+                    <Target className="h-6 w-6 text-primary mt-1" />
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{goal.title}</h3>
+                        <p className="text-sm text-muted-foreground">{goal.description}</p>
+                        {goal.targetValue && (
+                          <p className="text-xs text-muted-foreground">Target: {goal.targetValue}%</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-foreground">Progress</span>
+                          <span className="text-sm text-muted-foreground">{goal.progress}%</span>
+                        </div>
+                        <Slider
+                          value={[goal.progress]}
+                          onValueChange={(value) => updateGoalProgress(goal.id, value[0])}
+                          max={100}
+                          step={5}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
+
+          {hasUnsavedChanges && (
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-orange-800">You have unsaved changes</span>
+                  </div>
+                  <Button 
+                    onClick={handleSaveGoals} 
+                    disabled={saving}
+                    size="sm"
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Now'
+                    )}
+                  </Button>
                 </div>
               </div>
             </Card>
-          ))}
+          )}
         </div>
 
         {/* Tasks Section */}
