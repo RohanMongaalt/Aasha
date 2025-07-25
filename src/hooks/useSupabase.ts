@@ -343,8 +343,6 @@ export const useSupabase = () => {
       return [];
     }
   };
-};
-
   return {
     saveMoodEntry,
     getMoodEntries,
@@ -361,4 +359,6 @@ export const useSupabase = () => {
     saveGoal,
     getGoals
   };
+};
+
 
